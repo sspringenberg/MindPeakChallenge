@@ -29,6 +29,8 @@ parser.add_argument('--batch-size', type=int, default=32, metavar='N',
                     help='input batch size for training (default: 24)')
 parser.add_argument('--checkpoint-interval', type=int, default=1, metavar='N',
                     help='Interval between epochs to print loss and save model (default: 1)')
+parser.add_argument('--model-type', type=str, default='TransferCNN', metavar='S',
+                    help='model type; options: CNN, TransferCNN (default: TransferCNN)')
 parser.add_argument('--model-name', type=str, default='CNN', metavar='S',
                     help='model name (for saving) (default: CNN)')
 parser.add_argument('--mode', type=str, default='train', metavar='S',
@@ -94,24 +96,20 @@ def load_dataset(dataset_dir, train_subset=0.8):
 
     return train_loader, test_loader
 
-def train(args):
+def train(args, model):
     """
     train function, trains the model
     """
 
-    model = custom_models.TransferCNN()
-    # print(model)
-    # sys.exit()
-    # model = models.vgg11_bn(pretrained=True)
-    # for param in model.parameters():
-    #     param.requires_grad = False
-    #
-    # model.classifier[6] = nn.Sequential(
-    #     nn.Linear(4096, 256),
-    #     nn.ReLU(),
-    #     nn.Dropout(0.4),
-    #     nn.Linear(256, 4),
-    #     nn.LogSoftmax(dim=1))
+    os.mkdir("experiments/res_{}".format(args.model_name))
+    args.writer = SummaryWriter("experiments/res_{}".format(args.model_name))
+
+    if args.model_type == "TransferCNN":
+        model = custom_models.TransferCNN()
+    elif args.model_type == "CNN":
+        model = custom_models.CNN()
+    else:
+        raise TypeError("No valid --model-type provided (see -h)")
 
     train_loader, test_loader = load_dataset(args.dataset_dir)
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
@@ -123,14 +121,13 @@ def train(args):
 
     trainer.train_epochs()
 
-def test(args):
+def test(args, model):
     """
     test function, tests the model by creating class Probabilities for a
     single sample chosen randomly from test set and calculating accuracy on
     the whole test set
     """
 
-    model = custom_models.CNN()
     model.load_state_dict(torch.load('experiments/'+args.model_name, map_location=lambda storage, loc: storage))
     model.eval()
 
@@ -163,7 +160,6 @@ def test(args):
 if __name__ == '__main__':
 
     args = parser.parse_args()
-    args.writer = SummaryWriter('experiments/exp_7')
 
     if args.dataset_dir is None :
         raise TypeError("Dataset directory not passed as argument (see -h)")
@@ -175,9 +171,16 @@ if __name__ == '__main__':
 
     print("Using CUDA: {}".format(args.use_cuda))
 
+    if args.model_type == "TransferCNN":
+        model = custom_models.TransferCNN()
+    elif args.model_type == "CNN":
+        model = custom_models.CNN()
+    else:
+        raise TypeError("No valid --model-type provided (see -h)")
+
     if args.mode == 'train':
-        train(args)
+        train(args, model)
     elif args.mode == 'test':
-        test(args)
+        test(args, model)
     else:
         print("No --mode provided, options: train, test (see -h)")
