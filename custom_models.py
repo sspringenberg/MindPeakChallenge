@@ -10,9 +10,6 @@ class TransferCNN(nn.Module):
         super(TransferCNN, self).__init__()
 
         self.net = models.vgg11_bn(pretrained=True)
-        # print(self.net)
-        # sys.exit()
-        # self.net.features = self.net.features[0:14]
         self.net.features = self.net.features[0:21]
         for param in self.net.parameters():
             param.requires_grad = False
@@ -21,12 +18,10 @@ class TransferCNN(nn.Module):
             nn.Conv2d(512, 128, kernel_size = 1, stride = 1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
-            # nn.Dropout(0.3),
 
             nn.Conv2d(128, 64, kernel_size = 1, stride = 1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            # nn.Dropout(0.3),
 
             nn.AdaptiveAvgPool2d(1),
 
